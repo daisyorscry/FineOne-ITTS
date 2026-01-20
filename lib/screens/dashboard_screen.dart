@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/app_database.dart';
-import '../screens/add_transaction_screen.dart';
 import '../screens/transaction_detail_screen.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/filter_sheet.dart';
-import '../widgets/nav_action_button.dart';
 import '../widgets/quick_range_selector.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -50,15 +48,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _balance = balance;
       _transactions = transactions;
     });
-  }
-
-  Future<void> _openTransactionForm() async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
-    );
-    if (saved == true) {
-      _loadData();
-    }
   }
 
   String _formatRupiah(int value) {
@@ -398,52 +387,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-              ),
-            ),
-            SizedBox(
-              height: 98,
-              child: Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(24, 26, 24, 16),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x1A000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        const Icon(Icons.home_filled, color: Color(0xFF1B1C20)),
-                        const Icon(
-                          Icons.credit_card_rounded,
-                          color: Color(0xFFB6B7BC),
-                        ),
-                        const SizedBox(width: 40),
-                        const Icon(
-                          Icons.pie_chart_rounded,
-                          color: Color(0xFFB6B7BC),
-                        ),
-                        const Icon(Icons.person_rounded, color: Color(0xFFB6B7BC)),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    child: NavActionButton(
-                      icon: Icons.swap_horiz_rounded,
-                      onTap: _openTransactionForm,
-                    ),
-                  ),
-                ],
               ),
             ),
           ],

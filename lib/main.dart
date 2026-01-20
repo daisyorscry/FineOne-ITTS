@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:finone/screens/fin_one_landing.dart';
-import 'package:finone/screens/dashboard_screen.dart';
+import 'package:finone/screens/home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      MaterialPageRoute(builder: (_) => const HomeShell()),
     );
   }
 

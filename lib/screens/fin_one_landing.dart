@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'dashboard_screen.dart';
+import 'home_shell.dart';
 
 class FinOneLanding extends StatelessWidget {
   const FinOneLanding({super.key});
@@ -77,7 +77,7 @@ class FinOneLanding extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const DashboardScreen(),
+                              builder: (_) => const HomeShell(),
                             ),
                           );
                         },
