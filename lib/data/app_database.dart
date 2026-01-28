@@ -97,6 +97,19 @@ class AppDatabase {
     return db.insert('transactions', entry.toMap());
   }
 
+  Future<int> updateTransaction(TransactionEntry entry) async {
+    final db = await database;
+    if (entry.id == null) {
+      return 0;
+    }
+    return db.update(
+      'transactions',
+      entry.toMap(),
+      where: 'id = ?',
+      whereArgs: [entry.id],
+    );
+  }
+
   Future<List<TransactionEntry>> fetchTransactions({
     DateTime? startDate,
     DateTime? endDate,

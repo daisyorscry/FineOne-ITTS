@@ -11,10 +11,10 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() => DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class DashboardScreenState extends State<DashboardScreen> {
   List<TransactionEntry> _transactions = [];
   int _balance = 0;
   DateTimeRange? _dateRange;
@@ -29,6 +29,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _setQuickRange('Today', reload: false);
     _loadData();
+  }
+
+  Future<void> refresh() async {
+    await _loadData();
   }
 
   Future<void> _loadData() async {
@@ -373,13 +377,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   item: item,
                                   amountText: _formatRupiah(item.amount),
                                   dateText: _formatDate(item.date),
-                                  onTap: () {
-                                    Navigator.of(context).push(
+                                  onTap: () async {
+                                    final updated = await Navigator.of(context)
+                                        .push(
                                       MaterialPageRoute(
                                         builder: (_) =>
                                             TransactionDetailScreen(entry: item),
                                       ),
                                     );
+                                    if (updated == true) {
+                                      _loadData();
+                                    }
                                   },
                                 );
                               },

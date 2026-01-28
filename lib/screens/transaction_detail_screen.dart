@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/app_database.dart';
+import 'add_transaction_screen.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
   const TransactionDetailScreen({super.key, required this.entry});
@@ -86,6 +87,21 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         title: const Text('Detail Transaksi'),
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            onPressed: () async {
+              final updated = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AddTransactionScreen(initialEntry: entry),
+                ),
+              );
+              if (updated == true && mounted) {
+                Navigator.of(context).pop(true);
+              }
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

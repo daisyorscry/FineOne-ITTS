@@ -5,9 +5,14 @@ import '../data/app_database.dart';
 import '../widgets/transaction_form_fields.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key, this.initialType = 'expense'});
+  const AddTransactionScreen({
+    super.key,
+    this.initialType = 'expense',
+    this.initialEntry,
+  });
 
   final String initialType;
+  final TransactionEntry? initialEntry;
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -21,7 +26,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late String _type;
   String _category = 'Shopping';
   String _method = 'Cash';
-  int _balance = 0;
+  TransactionEntry? _editingEntry;
 
   final List<String> _categories = const [
     'Shopping',
@@ -41,18 +46,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType;
-    _loadBalance();
-  }
-
-  Future<void> _loadBalance() async {
-    final balance = await AppDatabase.instance.getBalance();
-    if (!mounted) {
-      return;
+    _editingEntry = widget.initialEntry;
+    _type = widget.initialEntry?.type ?? widget.initialType;
+    if (widget.initialEntry != null) {
+      final entry = widget.initialEntry!;
+      _titleController.text = entry.title;
+      _amountController.text = _formatInputAmount(entry.amount);
+      _notesController.text = entry.notes ?? '';
+      _category = entry.category;
+      _method = entry.method ?? _method;
     }
-    setState(() {
-      _balance = balance;
-    });
   }
 
   @override
@@ -68,9 +71,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
     final amount = int.parse(_amountController.text.replaceAll('.', '').trim());
+    final editing = _editingEntry;
+    final baseBalance = await AppDatabase.instance.getBalance();
+    final adjustedBalance = _adjustedBalanceForEdit(editing, baseBalance);
     if (_type == 'expense') {
-      final balance = await AppDatabase.instance.getBalance();
-      if (amount > balance) {
+      if (amount > adjustedBalance) {
         if (!mounted) {
           return;
         }
@@ -111,17 +116,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       }
     }
     final entry = TransactionEntry(
+      id: editing?.id,
       title: _titleController.text.trim(),
       category: _category,
       amount: amount,
       type: _type,
-      date: DateTime.now(),
+      date: editing?.date ?? DateTime.now(),
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
       method: _method,
     );
-    await AppDatabase.instance.insertTransaction(entry);
+    if (editing == null) {
+      await AppDatabase.instance.insertTransaction(entry);
+    } else {
+      await AppDatabase.instance.updateTransaction(entry);
+    }
     if (!mounted) {
       return;
     }
@@ -160,13 +170,36 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return '${isNegative ? '-' : ''}Rp.${buffer.toString()}';
   }
 
+  String _formatInputAmount(int value) {
+    final digits = value.abs().toString().split('');
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      buffer.write(digits[i]);
+      final remaining = digits.length - i - 1;
+      if (remaining > 0 && remaining % 3 == 0) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
+  }
+
+  int _adjustedBalanceForEdit(TransactionEntry? editing, int baseBalance) {
+    if (editing == null) {
+      return baseBalance;
+    }
+    if (editing.type == 'expense') {
+      return baseBalance + editing.amount;
+    }
+    return baseBalance - editing.amount;
+  }
+
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppBar(
-        title: const Text('Transaksi'),
+        title: Text(_editingEntry == null ? 'Transaksi' : 'Edit Transaksi'),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
@@ -375,17 +408,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           top: false,
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B1C20),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: ElevatedButton(
+                    onPressed: _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B1C20),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(_editingEntry == null ? 'Simpan' : 'Update'),
+                  ),
+                ),
               ),
-              child: const Text('Simpan'),
-            ),
-          ),
-        ),
       ),
     );
   }

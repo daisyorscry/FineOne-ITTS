@@ -1,20 +1,153 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../data/app_database.dart';
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
 
   @override
-  State<SummaryScreen> createState() => _SummaryScreenState();
+  State<SummaryScreen> createState() => SummaryScreenState();
 }
 
-class _SummaryScreenState extends State<SummaryScreen> {
+class SummaryScreenState extends State<SummaryScreen> {
   String _segment = 'income';
+  List<TransactionEntry> _transactions = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> refresh() async {
+    setState(() => _isLoading = true);
+    await _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final now = DateTime.now();
+      final rangeStart = _monthStart(_addMonths(now, -3));
+      final rangeEnd = _monthEnd(now);
+      final transactions = await AppDatabase.instance.fetchTransactions(
+        startDate: rangeStart,
+        endDate: rangeEnd,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _transactions = transactions;
+      });
+    } finally {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  DateTime _addMonths(DateTime date, int offset) {
+    return DateTime(date.year, date.month + offset, 1);
+  }
+
+  DateTime _monthStart(DateTime date) {
+    return DateTime(date.year, date.month, 1);
+  }
+
+  DateTime _monthEnd(DateTime date) {
+    return DateTime(date.year, date.month + 1, 0, 23, 59, 59, 999);
+  }
+
+  bool _isSameMonth(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month;
+  }
+
+  int _sumForMonth(DateTime month, String type) {
+    return _transactions
+        .where((entry) =>
+            entry.type == type && _isSameMonth(entry.date, month))
+        .fold<int>(0, (sum, entry) => sum + entry.amount);
+  }
+
+  List<int> _monthlyTotals(String type) {
+    final now = DateTime.now();
+    return List.generate(4, (index) {
+      final month = _addMonths(now, index - 3);
+      return _sumForMonth(month, type);
+    });
+  }
+
+  List<String> _monthLabels() {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final now = DateTime.now();
+    return List.generate(4, (index) {
+      final month = _addMonths(now, index - 3);
+      return months[month.month - 1];
+    });
+  }
+
+  Map<String, int> _categoryTotals(String type) {
+    final now = DateTime.now();
+    final totals = <String, int>{};
+    for (final entry in _transactions) {
+      if (entry.type != type || !_isSameMonth(entry.date, now)) {
+        continue;
+      }
+      totals.update(entry.category, (value) => value + entry.amount,
+          ifAbsent: () => entry.amount);
+    }
+    return totals;
+  }
+
+  String _formatRupiah(int value) {
+    final isNegative = value < 0;
+    final digits = value.abs().toString().split('');
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      buffer.write(digits[i]);
+      final remaining = digits.length - i - 1;
+      if (remaining > 0 && remaining % 3 == 0) {
+        buffer.write('.');
+      }
+    }
+    return '${isNegative ? '-' : ''}Rp.${buffer.toString()}';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final currentMonthTotal = _sumForMonth(now, _segment);
+    final previousMonthTotal = _sumForMonth(_addMonths(now, -1), _segment);
+    final diff = currentMonthTotal - previousMonthTotal;
+    final changeText = previousMonthTotal == 0
+        ? 'No data from last month'
+        : diff == 0
+            ? 'Same as last month'
+            : '${diff > 0 ? 'Increase' : 'Decrease'} of '
+                '${((diff.abs() / previousMonthTotal) * 100).round()}% from last month';
+    final monthlyTotals = _monthlyTotals(_segment);
+    final categoryTotals = _categoryTotals(_segment);
+    final categoryItems = categoryTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
@@ -39,7 +172,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'Save This Month',
+                      _segment == 'income' ? 'Income This Month' : 'Expense This Month',
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -48,7 +181,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _segment == 'income' ? 'Rp.1.852.000' : 'Rp.1.145.000',
+                      _formatRupiah(currentMonthTotal),
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -57,7 +190,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Increase of 12% from last month',
+                      changeText,
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -68,7 +201,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              const _SummaryChart(),
+              _SummaryChart(
+                values: monthlyTotals,
+                labels: _monthLabels(),
+                highlightValue: _formatRupiah(monthlyTotals.isNotEmpty
+                    ? monthlyTotals.last
+                    : 0),
+              ),
               const SizedBox(height: 18),
               Text(
                 'Categories',
@@ -79,25 +218,37 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                height: 130,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 2,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final isFirst = index == 0;
-                    return _CategoryCard(
-                      title: isFirst ? 'Salary' : 'Education',
-                      date: isFirst ? 'Dec 8, 2022' : 'June 8, 2022',
-                      amount: isFirst ? '+Rp.18,5 M' : '-Rp.165.000',
-                      color: isFirst
-                          ? const Color(0xFFBFFFE3)
-                          : const Color(0xFFD7B6FF),
-                    );
-                  },
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (categoryItems.isEmpty)
+                Text(
+                  'Belum ada transaksi bulan ini.',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF8C8F96),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 130,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categoryItems.length.clamp(0, 6).toInt(),
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final item = categoryItems[index];
+                      return _CategoryCard(
+                        title: item.key,
+                        subtitle: 'Bulan ini',
+                        amount: _formatRupiah(item.value),
+                        color: index.isEven
+                            ? const Color(0xFFBFFFE3)
+                            : const Color(0xFFD7B6FF),
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -135,8 +286,8 @@ class _SegmentedControl extends StatelessWidget {
           Expanded(
             child: _SegmentButton(
               label: 'Expenses',
-              selected: value == 'expenses',
-              onTap: () => onChanged('expenses'),
+              selected: value == 'expense',
+              onTap: () => onChanged('expense'),
             ),
           ),
         ],
@@ -184,7 +335,15 @@ class _SegmentButton extends StatelessWidget {
 }
 
 class _SummaryChart extends StatelessWidget {
-  const _SummaryChart();
+  const _SummaryChart({
+    required this.values,
+    required this.labels,
+    required this.highlightValue,
+  });
+
+  final List<int> values;
+  final List<String> labels;
+  final String highlightValue;
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +356,10 @@ class _SummaryChart extends StatelessWidget {
       child: SizedBox(
         height: 170,
         child: CustomPaint(
-          painter: _LineChartPainter(),
+          painter: _LineChartPainter(
+            values: values,
+            highlightValue: highlightValue,
+          ),
           child: Padding(
             padding: const EdgeInsets.only(left: 28, right: 8, bottom: 20),
             child: Column(
@@ -205,12 +367,9 @@ class _SummaryChart extends StatelessWidget {
                 const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('April'),
-                    Text('May'),
-                    Text('June'),
-                    Text('July'),
-                  ],
+                  children: labels
+                      .map((label) => Text(label))
+                      .toList(),
                 ),
               ],
             ),
@@ -222,6 +381,14 @@ class _SummaryChart extends StatelessWidget {
 }
 
 class _LineChartPainter extends CustomPainter {
+  _LineChartPainter({
+    required this.values,
+    required this.highlightValue,
+  });
+
+  final List<int> values;
+  final String highlightValue;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -243,16 +410,20 @@ class _LineChartPainter extends CustomPainter {
       );
     }
 
-    final points = [
-      Offset(chartRect.left, chartRect.bottom - chartRect.height * 0.1),
-      Offset(chartRect.left + chartRect.width * 0.25,
-          chartRect.bottom - chartRect.height * 0.25),
-      Offset(chartRect.left + chartRect.width * 0.5,
-          chartRect.bottom - chartRect.height * 0.55),
-      Offset(chartRect.left + chartRect.width * 0.75,
-          chartRect.bottom - chartRect.height * 0.45),
-      Offset(chartRect.right, chartRect.bottom - chartRect.height * 0.65),
-    ];
+    if (values.isEmpty) {
+      return;
+    }
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final safeMax = maxValue == 0 ? 1 : maxValue;
+    final stepX =
+        values.length > 1 ? chartRect.width / (values.length - 1) : 0;
+    final points = List.generate(values.length, (index) {
+      final value = values[index];
+      final x = chartRect.left + stepX * index;
+      final ratio = value / safeMax;
+      final y = chartRect.bottom - (chartRect.height * ratio);
+      return Offset(x, y);
+    });
 
     final path = Path()..moveTo(points.first.dx, points.first.dy);
     for (var i = 1; i < points.length; i++) {
@@ -264,21 +435,21 @@ class _LineChartPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    final focus = points[2];
+    final focus = points.last;
     final dotPaint = Paint()..color = const Color(0xFF1B1C20);
     canvas.drawCircle(focus, 5, dotPaint);
 
     final labelRect = Rect.fromCenter(
       center: Offset(focus.dx, focus.dy - 26),
-      width: 64,
+      width: 86,
       height: 24,
     );
     final rrect = RRect.fromRectAndRadius(labelRect, const Radius.circular(10));
     canvas.drawRRect(rrect, Paint()..color = const Color(0xFF1B1C20));
     final tp = TextPainter(
-      text: const TextSpan(
-        text: 'Rp20,000',
-        style: TextStyle(color: Colors.white, fontSize: 10),
+      text: TextSpan(
+        text: highlightValue,
+        style: const TextStyle(color: Colors.white, fontSize: 10),
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: labelRect.width);
@@ -295,13 +466,13 @@ class _LineChartPainter extends CustomPainter {
 class _CategoryCard extends StatelessWidget {
   const _CategoryCard({
     required this.title,
-    required this.date,
+    required this.subtitle,
     required this.amount,
     required this.color,
   });
 
   final String title;
-  final String date;
+  final String subtitle;
   final String amount;
   final Color color;
 
@@ -341,7 +512,7 @@ class _CategoryCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            date,
+            subtitle,
             style: GoogleFonts.spaceGrotesk(
               fontSize: 11,
               fontWeight: FontWeight.w500,

@@ -14,13 +14,15 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  final _dashboardKey = GlobalKey<DashboardScreenState>();
+  final _summaryKey = GlobalKey<SummaryScreenState>();
 
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const DashboardScreen(),
+      DashboardScreen(key: _dashboardKey),
       const _PlaceholderScreen(label: 'Cards'),
-      const SummaryScreen(),
+      SummaryScreen(key: _summaryKey),
       const _PlaceholderScreen(label: 'Profile'),
     ];
 
@@ -55,7 +57,10 @@ class _HomeShellState extends State<HomeShell> {
                   _NavIcon(
                     icon: Icons.home_filled,
                     active: _index == 0,
-                    onTap: () => setState(() => _index = 0),
+                    onTap: () {
+                      setState(() => _index = 0);
+                      _dashboardKey.currentState?.refresh();
+                    },
                   ),
                   _NavIcon(
                     icon: Icons.credit_card_rounded,
@@ -66,7 +71,10 @@ class _HomeShellState extends State<HomeShell> {
                   _NavIcon(
                     icon: Icons.pie_chart_rounded,
                     active: _index == 2,
-                    onTap: () => setState(() => _index = 2),
+                    onTap: () {
+                      setState(() => _index = 2);
+                      _summaryKey.currentState?.refresh();
+                    },
                   ),
                   _NavIcon(
                     icon: Icons.person_rounded,
@@ -81,11 +89,15 @@ class _HomeShellState extends State<HomeShell> {
               child: NavActionButton(
                 icon: Icons.swap_horiz_rounded,
                 onTap: () async {
-                  await Navigator.of(context).push(
+                  final updated = await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const AddTransactionScreen(),
                     ),
                   );
+                  if (updated == true) {
+                    _dashboardKey.currentState?.refresh();
+                    _summaryKey.currentState?.refresh();
+                  }
                 },
               ),
             ),
