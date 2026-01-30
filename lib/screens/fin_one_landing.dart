@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'home_shell.dart';
+import 'setup_wizard.dart';
 
 class FinOneLanding extends StatelessWidget {
   const FinOneLanding({super.key});
@@ -77,7 +77,7 @@ class FinOneLanding extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const HomeShell(),
+                              builder: (_) => const SetupWizard(),
                             ),
                           );
                         },

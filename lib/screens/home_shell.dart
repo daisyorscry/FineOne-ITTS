@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'add_transaction_screen.dart';
 import 'dashboard_screen.dart';
+import 'pockets_screen.dart';
+import 'profile_screen.dart';
 import 'summary_screen.dart';
 import '../widgets/nav_action_button.dart';
 
@@ -21,9 +23,9 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final screens = [
       DashboardScreen(key: _dashboardKey),
-      const _PlaceholderScreen(label: 'Cards'),
+      const PocketsScreen(),
       SummaryScreen(key: _summaryKey),
-      const _PlaceholderScreen(label: 'Profile'),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
@@ -143,28 +145,6 @@ class _NavIcon extends StatelessWidget {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F9),
-      appBar: AppBar(
-        title: Text(label),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Text('$label (coming soon)'),
       ),
     );
   }

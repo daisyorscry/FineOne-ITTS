@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/app_database.dart';
+import '../services/gemini_service.dart';
+import 'insight_history_screen.dart';
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
@@ -14,6 +16,11 @@ class SummaryScreenState extends State<SummaryScreen> {
   String _segment = 'income';
   List<TransactionEntry> _transactions = [];
   bool _isLoading = true;
+  String? _insight;
+  bool _insightLoading = false;
+  String? _insightError;
+  String? _geminiApiKey;
+  DateTime? _insightCreatedAt;
 
   @override
   void initState() {
@@ -35,11 +42,21 @@ class SummaryScreenState extends State<SummaryScreen> {
         startDate: rangeStart,
         endDate: rangeEnd,
       );
+      final profile = await AppDatabase.instance.fetchProfile();
+      final monthKey = _monthKey(now);
+      final insightRecord = await AppDatabase.instance.fetchInsightRecord(monthKey);
+      final insight = insightRecord?['content'] as String?;
+      final createdAt = insightRecord?['created_at'] as String?;
       if (!mounted) {
         return;
       }
       setState(() {
         _transactions = transactions;
+        _insight = insight;
+        _insightCreatedAt =
+            createdAt == null ? null : DateTime.tryParse(createdAt);
+        _geminiApiKey = profile?.geminiApiKey;
+        _insightError = null;
       });
     } finally {
       if (!mounted) {
@@ -63,8 +80,17 @@ class SummaryScreenState extends State<SummaryScreen> {
     return DateTime(date.year, date.month + 1, 0, 23, 59, 59, 999);
   }
 
+  String _monthKey(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    return '${date.year}-$month';
+  }
+
   bool _isSameMonth(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month;
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   int _sumForMonth(DateTime month, String type) {
@@ -115,6 +141,83 @@ class SummaryScreenState extends State<SummaryScreen> {
           ifAbsent: () => entry.amount);
     }
     return totals;
+  }
+
+  int _countTransactionsForMonth(DateTime month) {
+    return _transactions
+        .where((entry) => _isSameMonth(entry.date, month))
+        .length;
+  }
+
+  Future<void> _generateInsight() async {
+    if (_insightLoading) {
+      return;
+    }
+    if (_insightCreatedAt != null &&
+        _isSameDay(_insightCreatedAt!, DateTime.now())) {
+      setState(() {
+        _insightError = 'You can generate a new insight tomorrow.';
+      });
+      return;
+    }
+    final apiKey = _geminiApiKey;
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      setState(() {
+        _insightError = 'Please add your Gemini API key in Profile.';
+      });
+      return;
+    }
+    setState(() {
+      _insightLoading = true;
+      _insightError = null;
+    });
+    try {
+      final now = DateTime.now();
+      final monthKey = _monthKey(now);
+      final monthLabel = _monthLabels().last;
+      final periodStart = _monthStart(now);
+      final periodEnd = _monthEnd(now);
+      final incomeByCategory = _categoryTotals('income');
+      final expenseByCategory = _categoryTotals('expense');
+      final totalIncome = _sumForMonth(now, 'income');
+      final totalExpense = _sumForMonth(now, 'expense');
+      final transactionCount = _countTransactionsForMonth(now);
+      final service = GeminiService(apiKey: apiKey);
+      final insight = await service.generateMonthlyInsight(
+        monthLabel: monthLabel,
+        incomeByCategory: incomeByCategory,
+        expenseByCategory: expenseByCategory,
+        totalIncome: totalIncome,
+        totalExpense: totalExpense,
+        transactionCount: transactionCount,
+      );
+      await AppDatabase.instance.saveInsight(
+        monthKey: monthKey,
+        content: insight,
+        periodStart: periodStart.toIso8601String(),
+        periodEnd: periodEnd.toIso8601String(),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _insight = insight;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _insightError = 'Failed to generate insight: $error';
+      });
+    } finally {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _insightLoading = false;
+      });
+    }
   }
 
   String _formatRupiah(int value) {
@@ -249,9 +352,170 @@ class SummaryScreenState extends State<SummaryScreen> {
                     },
                   ),
                 ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'AI Insight',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1B1C20),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const InsightHistoryScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'History',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _InsightCard(
+                insight: _insight,
+                isLoading: _insightLoading,
+                error: _insightError,
+                onGenerate: _generateInsight,
+                hasApiKey: _geminiApiKey != null && _geminiApiKey!.isNotEmpty,
+                lastGeneratedAt: _insightCreatedAt,
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _InsightCard extends StatelessWidget {
+  const _InsightCard({
+    required this.insight,
+    required this.isLoading,
+    required this.error,
+    required this.onGenerate,
+    required this.hasApiKey,
+    required this.lastGeneratedAt,
+  });
+
+  final String? insight;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback onGenerate;
+  final bool hasApiKey;
+  final DateTime? lastGeneratedAt;
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canGenerate =
+        hasApiKey && (lastGeneratedAt == null || !_isSameDay(lastGeneratedAt!, DateTime.now()));
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE6E8ED)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (insight != null && insight!.isNotEmpty) ...[
+            Text(
+              insight!,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                height: 1.5,
+                color: const Color(0xFF1B1C20),
+              ),
+            ),
+            if (lastGeneratedAt != null &&
+                _isSameDay(lastGeneratedAt!, DateTime.now())) ...[
+              const SizedBox(height: 12),
+              Text(
+                'You can generate a new insight tomorrow.',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF6B6B6B),
+                ),
+              ),
+            ] else if (canGenerate) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onGenerate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B1C20),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Generate again'),
+                ),
+              ),
+            ],
+          ] else if (isLoading) ...[
+            const Center(child: CircularProgressIndicator()),
+          ] else ...[
+            Text(
+              hasApiKey
+                  ? 'Generate a monthly insight from your transactions.'
+                  : 'Add your Gemini API key in Profile to enable insights.',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                color: const Color(0xFF6B6B6B),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (canGenerate)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onGenerate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B1C20),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Generate insight'),
+                ),
+              ),
+            if (!canGenerate && lastGeneratedAt != null)
+              Text(
+                'You can generate a new insight tomorrow.',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF6B6B6B),
+                ),
+              ),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              error!,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 11,
+                color: const Color(0xFFEF4444),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

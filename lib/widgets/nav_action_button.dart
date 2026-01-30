@@ -23,11 +23,11 @@ class NavActionButton extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: const Color(0xFFEDE7FF),
+          color: const Color(0xFF3B4B3F),
           shape: BoxShape.circle,
           boxShadow: const [
             BoxShadow(
-              color: Color(0x2A6C4DFF),
+              color: Color(0x1F3B4B3F),
               blurRadius: 16,
               offset: Offset(0, 8),
             ),
@@ -36,7 +36,7 @@ class NavActionButton extends StatelessWidget {
         child: Icon(
           icon,
           size: iconSize,
-          color: const Color(0xFF6C4DFF),
+          color: Colors.white,
         ),
       ),
     );

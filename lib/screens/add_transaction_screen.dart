@@ -27,6 +27,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String _category = 'Shopping';
   String _method = 'Cash';
   TransactionEntry? _editingEntry;
+  List<PocketEntry> _pockets = [];
+  int? _selectedPocketId;
 
   final List<String> _categories = const [
     'Shopping',
@@ -48,6 +50,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.initState();
     _editingEntry = widget.initialEntry;
     _type = widget.initialEntry?.type ?? widget.initialType;
+    _selectedPocketId = widget.initialEntry?.pocketId;
     if (widget.initialEntry != null) {
       final entry = widget.initialEntry!;
       _titleController.text = entry.title;
@@ -56,6 +59,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _category = entry.category;
       _method = entry.method ?? _method;
     }
+    _loadPockets();
   }
 
   @override
@@ -72,7 +76,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
     final amount = int.parse(_amountController.text.replaceAll('.', '').trim());
     final editing = _editingEntry;
-    final baseBalance = await AppDatabase.instance.getBalance();
+    final baseBalance =
+        await AppDatabase.instance.getBalance(pocketId: _selectedPocketId);
     final adjustedBalance = _adjustedBalanceForEdit(editing, baseBalance);
     if (_type == 'expense') {
       if (amount > adjustedBalance) {
@@ -126,6 +131,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ? null
           : _notesController.text.trim(),
       method: _method,
+      pocketId: _selectedPocketId,
     );
     if (editing == null) {
       await AppDatabase.instance.insertTransaction(entry);
@@ -193,6 +199,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return baseBalance - editing.amount;
   }
 
+  Future<void> _loadPockets() async {
+    var pockets = await AppDatabase.instance.fetchPockets();
+    if (pockets.isEmpty) {
+      await AppDatabase.instance.insertPocket(
+        'Main',
+        colorValue: 0xFFBFFFE3,
+      );
+      pockets = await AppDatabase.instance.fetchPockets();
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _pockets = pockets;
+      _selectedPocketId ??= pockets.isNotEmpty ? pockets.first.id : null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
@@ -240,6 +264,59 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Kantong',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1B1C20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _pockets.isEmpty
+                    ? const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Belum ada kantong.',
+                          style: TextStyle(color: Color(0xFF8C8F96)),
+                        ),
+                      )
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _pockets
+                            .map(
+                              (pocket) => ChoiceChip(
+                                label: Text(pocket.name),
+                                selected: _selectedPocketId == pocket.id,
+                                onSelected: (_) {
+                                  setState(() {
+                                    _selectedPocketId = pocket.id;
+                                  });
+                                },
+                                checkmarkColor: Colors.white,
+                                selectedColor: const Color(0xFF1B1C20),
+                                labelStyle: TextStyle(
+                                  color: _selectedPocketId == pocket.id
+                                      ? Colors.white
+                                      : const Color(0xFF1B1C20),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: const BorderSide(
+                                    color: Color(0xFFDDDFE4),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(

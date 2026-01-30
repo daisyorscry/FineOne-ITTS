@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:finone/screens/fin_one_landing.dart';
+import 'package:finone/screens/setup_wizard.dart';
 import 'package:finone/screens/home_shell.dart';
 
 void main() {
@@ -75,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen> {
         return;
       }
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const FinOneLanding()),
+        MaterialPageRoute(builder: (_) => const SetupWizard()),
       );
       return;
     }
