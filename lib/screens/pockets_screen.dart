@@ -343,8 +343,8 @@ class _AddPocketGridCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: const Color(0xFFCACDD6),
+        painter: const _DashedBorderPainter(
+          color: Color(0xFFCACDD6),
           radius: 20,
         ),
         child: Container(
@@ -364,8 +364,8 @@ class _AddPocketGridCard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add_circle_outline, size: 28),
-                SizedBox(height: 6),
+                const Icon(Icons.add_circle_outline, size: 28),
+                const SizedBox(height: 6),
                 Text(
                   'Add pocket',
                   style: GoogleFonts.spaceGrotesk(

@@ -344,8 +344,8 @@ class _MonthlySummaryStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        _MiniBadgeRow(
-          badges: const ['Trends', 'Categories', 'Month view'],
+        const _MiniBadgeRow(
+          badges: ['Trends', 'Categories', 'Month view'],
         ),
         const SizedBox(height: 18),
         const _OnboardingChart(),
@@ -380,24 +380,24 @@ class _AiInsightStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        _InsightExampleCard(
+        const _InsightExampleCard(
           title: 'Insight',
           body:
               'Dining spend jumped +18% this week. Consider setting a weekly cap.',
           footer: 'Suggestion · Category: Food',
         ),
         const SizedBox(height: 16),
-        _TimelineItem(
+        const _TimelineItem(
           title: 'Spending patterns',
           subtitle: 'Find hidden habits',
         ),
         const SizedBox(height: 12),
-        _TimelineItem(
+        const _TimelineItem(
           title: 'Actionable tips',
           subtitle: 'Suggestions tailored to you',
         ),
         const SizedBox(height: 12),
-        _TimelineItem(
+        const _TimelineItem(
           title: 'Weekly nudges',
           subtitle: 'Stay on track',
         ),
@@ -409,7 +409,7 @@ class _AiInsightStep extends StatelessWidget {
 class _CardStackMock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return const SizedBox(
       width: 140,
       height: 180,
       child: Stack(
@@ -417,18 +417,18 @@ class _CardStackMock extends StatelessWidget {
           Positioned(
             top: 20,
             left: 12,
-            child: _MiniCard(color: const Color(0xFFEFF7E8)),
+            child: _MiniCard(color: Color(0xFFEFF7E8)),
           ),
           Positioned(
             top: 8,
             right: 0,
-            child: _MiniCard(color: const Color(0xFFE2F0FF)),
+            child: _MiniCard(color: Color(0xFFE2F0FF)),
           ),
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: _MiniCard(color: const Color(0xFFFFF4E8)),
+            child: _MiniCard(color: Color(0xFFFFF4E8)),
           ),
         ],
       ),
@@ -458,9 +458,9 @@ class _ChartMockCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
+          const Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: const [
+            children: [
               _BarStub(height: 46, color: Color(0xFFBFFFE3)),
               SizedBox(width: 8),
               _BarStub(height: 30, color: Color(0xFFFFF4E8)),
@@ -783,8 +783,8 @@ class _PocketMockGrid extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: const [
+        const Row(
+          children: [
             Expanded(
               child: _PocketMockCard(
                 title: 'Daily',
@@ -803,8 +803,8 @@ class _PocketMockGrid extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: const [
+        const Row(
+          children: [
             Expanded(
               child: _PocketMockCard(
                 title: 'Goals',

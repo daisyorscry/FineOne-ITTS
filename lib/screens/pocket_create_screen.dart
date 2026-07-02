@@ -187,11 +187,11 @@ class _PocketCreateScreenState extends State<PocketCreateScreen> {
                 hint: 'Example: Food, Transport',
               ),
               const SizedBox(height: 16),
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Tab',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(height: 10),

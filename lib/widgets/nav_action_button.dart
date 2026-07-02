@@ -22,10 +22,10 @@ class NavActionButton extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          color: const Color(0xFF3B4B3F),
+        decoration: const BoxDecoration(
+          color: Color(0xFF3B4B3F),
           shape: BoxShape.circle,
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: Color(0x1F3B4B3F),
               blurRadius: 16,

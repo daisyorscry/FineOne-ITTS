@@ -473,7 +473,7 @@ class _PocketCardView extends StatelessWidget {
               height: 70,
               decoration: BoxDecoration(
                 color: accentColor,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(40),
                 ),
               ),

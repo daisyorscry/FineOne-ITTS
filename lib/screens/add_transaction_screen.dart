@@ -94,9 +94,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 color: Colors.white,
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                child: Column(
+                child: const Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(
                       Icons.error_outline_rounded,
                       size: 40,
@@ -244,8 +244,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     color: const Color(0xFFFFF4E8),
                     borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(
                         Icons.lightbulb_outline_rounded,
                         color: Color(0xFF1B1C20),
@@ -264,11 +264,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Kantong',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1B1C20),
@@ -317,11 +317,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             .toList(),
                       ),
                 const SizedBox(height: 16),
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Kategori transaksi',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1B1C20),
@@ -358,11 +358,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       .toList(),
                 ),
                 const SizedBox(height: 16),
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Form transaksi',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1B1C20),
@@ -413,11 +413,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         },
                       ),
                       const SizedBox(height: 14),
-                      Align(
+                      const Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'Tipe transaksi',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1B1C20),
